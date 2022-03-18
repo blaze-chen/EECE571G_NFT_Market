@@ -1,15 +1,7 @@
-# Basic Sample Hardhat Project
+# EECE571G Group 9 NFT Market
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+To group members:
 
-Try running some of the following tasks:
+Please install Hardhat, openzeppelin. We will build our project based on the package ERC721 in openzeppelin which is a standard nft interface.
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+For now we only have implemented the mint function which can add token to one address. We still have more functions and test cases to finish. 
