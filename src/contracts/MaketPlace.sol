@@ -338,6 +338,7 @@ contract MarketPlace is ReentrancyGuard{
             address(this),
             auction.seller,
             aItem.tokenId);
+        aItem.sold=true;
         address tokenOwner=aItem.nft.ownerOf(aItem.tokenId);
         
         emit auctionCanceled(
@@ -348,6 +349,8 @@ contract MarketPlace is ReentrancyGuard{
             tokenOwner);
     }
     function getAuctionDetails (uint _itemId) public view returns (auctionDetails memory){
+        Item memory aItem = items[_itemId];
+        require(aItem.inAuction,"Item is not in auction");
         auctionDetails memory auction = itemToAuction[_itemId];
         return auction;
     }
