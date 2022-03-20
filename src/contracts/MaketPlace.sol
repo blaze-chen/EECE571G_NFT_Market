@@ -68,7 +68,7 @@ contract MarketPlace is ReentrancyGuard{
         uint itemId,
         address indexed nft,
         uint tokenId,
-        uint128 maxBidPrice,
+        uint256 maxBidPrice,
         address indexed seller,
         address indexed maxBidder
     );
@@ -224,7 +224,7 @@ contract MarketPlace is ReentrancyGuard{
 
         emit auctionCreated(
             item.itemId,
-            address(_nft),
+            address(item.nft),
             item.tokenId,
             _basePrice,
             msg.sender,
@@ -316,7 +316,7 @@ contract MarketPlace is ReentrancyGuard{
             aItem.tokenId,
             auction.maxBid,
             auction.seller,
-            auction.maxBidder);
+            auction.maxBidUser);
     }
 
     // cancel auction by seller. refund to all bidders. refund the nft to seller
