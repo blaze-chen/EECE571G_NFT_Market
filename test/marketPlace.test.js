@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const toWei =(num) => ethers.utils.parseEther(num.toString())
 const fromWei = (num) => ethers.utils.formatEther(num)
-
+const BigNumber = require('big-number');
 
 
 describe("NFTMarketplace",function(){
@@ -64,6 +64,8 @@ describe("NFTMarketplace",function(){
         expect(item.tokenId).to.equal(1);
         expect(item.price).to.equal(toWei(1));
         expect(item.sold).to.equal(false);
+        expect(item.totalReward).to.equal(0);
+        expect(item.inAuction).to.equal(false);
         });
         it("should fail if price is set to zero",async function(){
             await expect(
@@ -88,6 +90,7 @@ describe("NFTMarketplace",function(){
             // fetch items total price(market fees + item price)
             totalPriceInWei= await marketPlace.getTotalPrice(1);
             // addr2 purchases item.
+            // should be emit correctly now
             await expect(marketPlace.connect(addr2).purchaseItem(1,{value: totalPriceInWei}))
             .to.emit(marketPlace,"Bought")
             .withArgs(
@@ -105,13 +108,14 @@ describe("NFTMarketplace",function(){
             // calculate fee
             const fee=(feePercent/100)*price;
             // feeAccount should receive fee
-            expect(+fromWei(feeAccountFinalEthBal)).to.equal(+fee + +fromWei(feeAccountInitialEthBal));
+            expect(feeAccountFinalEthBal).to.equal(feeAccountInitialEthBal.add(toWei(fee)));
             // The buyer should now own the nft
             expect(await nft.ownerOf(1)).to.equal(addr2.address);
             //Item should be marked as sold
             expect((await marketPlace.items(1)).sold).to.equal(true)
         });
         it("Should fail for invalid item ids,sold items and when not enough ether is paid",async function(){
+            
             // Fails for invalid item ids
             await expect(
                 marketPlace.connect(addr2).purchaseItem(2,{value: totalPriceInWei})
@@ -128,7 +132,7 @@ describe("NFTMarketplace",function(){
             // deployer tries to purchase item 1 after it is sold.
             await expect(
                 marketPlace.connect(deployer).purchaseItem(1,{value: totalPriceInWei})
-            ).to.be.revertedWith("item already sold");
+            ).to.be.revertedWith("The item is sold!");
         });
     })
 })
