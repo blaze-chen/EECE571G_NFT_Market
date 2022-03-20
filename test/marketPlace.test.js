@@ -134,5 +134,55 @@ describe("NFTMarketplace",function(){
                 marketPlace.connect(deployer).purchaseItem(1,{value: totalPriceInWei})
             ).to.be.revertedWith("The item is sold!");
         });
-    })
+    });
+    describe("Other user reward an item",function(){
+        let price=2;
+        beforeEach(async function(){
+            //addr1 mints an nft
+            await nft.connect(addr1).mint(URI);
+            //addr1 approves marketPlace to spend nft
+            await nft.connect(addr1).setApprovalForAll(marketPlace.address,true);
+            //addr1 makes their nft a marketPlace item.
+            await marketPlace.connect(addr1).makeItem(nft.address,1,toWei(price))
+        })
+        it("Should update totalReward the seller received,emit reward event",async function(){
+            //Seller initial balance
+            const sellerInitialEthBal= await addr1.getBalance();
+            //addr2 reward this item
+            await expect(marketPlace.connect(addr2).reward(1,{value:toWei(0.01)}))
+            .to.emit(marketPlace,"Rewarded")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(price),
+                toWei(0.01),
+                toWei(0.01),
+                addr1.address,
+                addr2.address
+            );
+            //deployer reward this item
+            await marketPlace.connect(deployer).reward(1,{value:toWei(0.01)});
+            const totalReward=(await marketPlace.items(1)).totalReward;
+            expect(totalReward).to.equal(toWei(0.02));
+            // Seller receive the reward money
+            const sellerAfterEthBal= await addr1.getBalance();
+            expect(sellerAfterEthBal).to.equal(sellerInitialEthBal.add(totalReward));
+        })
+        it("Should fail for invalid itemId or sold items or invalid value",async function(){
+            //fail for invalid itemId
+            await expect(marketPlace.connect(addr2).reward(3,{value:toWei(0.01)}))
+            .to.be.revertedWith("item doesn't exist");
+            //fail for invalid reward value
+            await expect(marketPlace.connect(addr2).reward(1,{value:toWei(0)}))
+            .to.be.revertedWith("reward should greater than 0");
+            //fail for sold items
+            //addr2 purchases item1
+            const totalPriceInWei=await marketPlace.getTotalPrice(1);
+            await marketPlace.connect(addr2).purchaseItem(1,{value: totalPriceInWei});
+            //deployer try to reward this item
+            await expect(marketPlace.connect(deployer).reward(1,{value:toWei(0.01)}))
+            .to.be.revertedWith("item already sold");
+        })
+    });
 })
