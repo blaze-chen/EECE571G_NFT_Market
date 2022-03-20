@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-contract photoAuction is IERC721Receiver{
+contract photoAuction{
     address scOwner;
     struct tokenDetails{
         address seller;
-        uint128 basePrice; // base price
+        uint128 basePrice;
         uint256 duration;
         uint256 maxBid;
         address maxBidUser;
@@ -18,19 +18,20 @@ contract photoAuction is IERC721Receiver{
         uint256[] bidAmounts;
         address[] users; 
     }
+
     mapping(address => mapping(uint256 => tokenDetails)) public tokenToAuction;
     mapping(address => mapping(uint256 => mapping(address => uint256))) public bids;
 
     constructor(){
         scOwner=msg.sender;
     }
-    // seller create an auction for one of item
+    // seller create an auction for one item
     function createTokenAuction(
         address _nft,
         uint256 _tokenId,
         uint128 _price,
         uint256 _duration
-    ) external {
+    ) public virtual {
         require(msg.sender != address(0),"Invalid Address");
         require(_nft != address(0),"Invalid Account");
         require(_price > 0,"price should be greater than 0");
@@ -122,7 +123,7 @@ contract photoAuction is IERC721Receiver{
             auction.seller,
             _tokenId);
     }
-    function getTokenAuctionDetails (address _nft,uint256 _tokenId) public views returns (tokenDetails memory){
+    function getTokenAuctionDetails (address _nft,uint256 _tokenId) public view returns (tokenDetails memory){
         tokenDetails memory auction = tokenToAuction[_nft][_tokenId];
         return auction;
     }
