@@ -12,7 +12,7 @@ describe("NFTMarketplace",function(){
     beforeEach(async function(){
         const NFT = await ethers.getContractFactory("NFT");
         const MarketPlace= await ethers.getContractFactory("MarketPlace");
-        [deployer,addr1,addr2]= await ethers.getSigners();
+        [deployer,addr1,addr2, addr3, addr4]= await ethers.getSigners();
         nft= await NFT.deploy();
         marketPlace=await MarketPlace.deploy(feePercent);
     });
@@ -100,7 +100,7 @@ describe("NFTMarketplace",function(){
                 toWei(price),
                 addr1.address,
                 addr2.address
-            )
+            );
             const sellerFinalEthBal= await addr1.getBalance();
             const feeAccountFinalEthBal= await deployer.getBalance();
             //seller should receive payment for the price of the NFT sold.
@@ -134,6 +134,47 @@ describe("NFTMarketplace",function(){
                 marketPlace.connect(deployer).purchaseItem(1,{value: totalPriceInWei})
             ).to.be.revertedWith("The item is sold!");
         });
+        it("Should be able to re-sell item after purchasing",async function(){
+            // price to pay the item
+            totalPriceInWei= await marketPlace.getTotalPrice(1);
+            // addr2 purchases item.
+            // should be emit correctly now
+            await expect(marketPlace.connect(addr2).purchaseItem(1,{value: totalPriceInWei}))
+            .to.emit(marketPlace,"Bought")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(price),
+                addr1.address,
+                addr2.address
+            );
+            // addr2 re-sell the token with price 10 ETH
+            await nft.connect(addr2).setApprovalForAll(marketPlace.address,true);
+            await expect(marketPlace.connect(addr2).sellItem(1, toWei(10)))
+            .to.emit(marketPlace, "SellAgain")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(10),
+                addr2.address
+            );
+            // addr3 purchase the token 
+            totalPriceInWei= await marketPlace.getTotalPrice(1);
+            await expect(marketPlace.connect(addr3).purchaseItem(1,{value: totalPriceInWei}))
+            .to.emit(marketPlace,"Bought")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(10),
+                addr2.address,
+                addr3.address
+            );
+
+        });
+
     });
     describe("Other user reward an item",function(){
         let price=2;
@@ -156,33 +197,96 @@ describe("NFTMarketplace",function(){
                 nft.address,
                 1,
                 toWei(price),
-                toWei(0.01),
-                toWei(0.01),
+                toWei(0.0001),
+                toWei(0.0001),
                 addr1.address,
                 addr2.address
             );
             //deployer reward this item
             await marketPlace.connect(deployer).reward(1,{value:toWei(0.01)});
             const totalReward=(await marketPlace.items(1)).totalReward;
-            expect(totalReward).to.equal(toWei(0.02));
+            expect(totalReward).to.equal(toWei(0.0002));
             // Seller receive the reward money
             const sellerAfterEthBal= await addr1.getBalance();
             expect(sellerAfterEthBal).to.equal(sellerInitialEthBal.add(totalReward));
         })
         it("Should fail for invalid itemId or sold items or invalid value",async function(){
             //fail for invalid itemId
-            await expect(marketPlace.connect(addr2).reward(3,{value:toWei(0.01)}))
+            await expect(marketPlace.connect(addr2).reward(5,{value:toWei(0.01)}))
             .to.be.revertedWith("item doesn't exist");
             //fail for invalid reward value
             await expect(marketPlace.connect(addr2).reward(1,{value:toWei(0)}))
             .to.be.revertedWith("reward should greater than 0");
-            //fail for sold items
-            //addr2 purchases item1
-            const totalPriceInWei=await marketPlace.getTotalPrice(1);
-            await marketPlace.connect(addr2).purchaseItem(1,{value: totalPriceInWei});
-            //deployer try to reward this item
-            await expect(marketPlace.connect(deployer).reward(1,{value:toWei(0.01)}))
-            .to.be.revertedWith("item already sold");
+        })
+    });
+    describe("Test bidding",function(){
+        let price=2;
+        beforeEach(async function(){
+            //addr1 mints an nft
+            await nft.connect(addr1).mint(URI);
+            //addr1 approves marketPlace to spend nft
+            await nft.connect(addr1).setApprovalForAll(marketPlace.address,true);
+            //addr1 makes their nft a marketPlace item.
+            await marketPlace.connect(addr1).makeItem(nft.address,1,toWei(price));
+        })
+        it("Should create auction correctly and finish bidding successfuly",async function(){
+            const addr2InitialEthBal= await addr2.getBalance();
+            const feeAccountInitialEthBal= await deployer.getBalance();
+            //addr1 create auction
+            await expect(marketPlace.connect(addr1).auctionItem(1, toWei(5), 1000)).
+            to.emit(marketPlace, "auctionCreated")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(5),
+                addr1.address,
+                1000
+            );
+            // addr2 bid 6 ETH
+            await expect(marketPlace.connect(addr2).bid(1, {value:toWei(6)})).
+            to.emit(marketPlace, "Bidded")
+            .withArgs(
+                1,
+                1,
+                toWei(6),
+                addr1.address,
+                addr2.address,
+                1000
+            );
+            const addr2AfterEthBal= await addr2.getBalance();
+            const feeAccountAfterEthBal= await deployer.getBalance();
+            expect(feeAccountAfterEthBal).to.equal(feeAccountInitialEthBal.add(toWei(6)));
+            // expect(addr2AfterEthBal).to.equal(addr2InitialEthBal.sub(toWei(6)));
+
+            // addr3 bid 7 ETH
+            await expect(marketPlace.connect(addr3).bid(1, {value:toWei(7)})).
+            to.emit(marketPlace, "Bidded")
+            .withArgs(
+                1,
+                1,
+                toWei(7),
+                addr1.address,
+                addr3.address,
+                1000
+            );
+            const feeAccountAfterEthBal3= await deployer.getBalance();
+            expect(feeAccountAfterEthBal3).to.equal(feeAccountAfterEthBal.add(toWei(7)));
+            const addr1InitialETHBal = await addr1.getBalance();
+            // finish auction
+            await expect(marketPlace.executeSale(1))
+            .to.emit(marketPlace, "auctionDeal")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(7),
+                addr1.address,
+                addr3.address
+            )
+            // const addr1AfterETHBal = await addr1.getBalance();
+            // const myFee= toWei(7).mul(feePercent).div(100+feePercent);
+            // expect(addr1AfterETHBal).to.equal(addr1InitialETHBal.add(myFee));
         })
     });
 })
