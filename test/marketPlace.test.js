@@ -230,7 +230,6 @@ describe("NFTMarketplace",function(){
             await marketPlace.connect(addr1).makeItem(nft.address,1,toWei(price));
         })
         it("Should create auction correctly and finish bidding successfuly",async function(){
-            const addr2InitialEthBal= await addr2.getBalance();
             const feeAccountInitialEthBal= await deployer.getBalance();
             //addr1 create auction
             await expect(marketPlace.connect(addr1).auctionItem(1, toWei(5), 1000)).
@@ -244,49 +243,56 @@ describe("NFTMarketplace",function(){
                 1000
             );
             // addr2 bid 6 ETH
-            await expect(marketPlace.connect(addr2).bid(1, {value:toWei(6)})).
-            to.emit(marketPlace, "Bidded")
-            .withArgs(
-                1,
-                1,
-                toWei(6),
-                addr1.address,
-                addr2.address,
-                1000
-            );
-            const addr2AfterEthBal= await addr2.getBalance();
-            const feeAccountAfterEthBal= await deployer.getBalance();
-            expect(feeAccountAfterEthBal).to.equal(feeAccountInitialEthBal.add(toWei(6)));
+
+            const addr2InitialEthBal = await addr2.getBalance();
+            // const tx = await expect(marketPlace.connect(addr2).bid(1, {value:toWei(6)})).
+            // to.emit(marketPlace, "Bidded")
+            // .withArgs(
+            //     1,
+            //     1,
+            //     toWei(6),
+            //     addr1.address,
+            //     addr2.address,
+            //     1000
+            // );
+            const tx=await marketPlace.connect(addr2).bid(1, {value:toWei(6)});
+            receipt= await tx.wait();
+            const gasFee= receipt.gasUsed * receipt.effectiveGasPrice
+            console.log("gasFee",gasFee);
+
             // expect(addr2AfterEthBal).to.equal(addr2InitialEthBal.sub(toWei(6)));
 
             // addr3 bid 7 ETH
-            await expect(marketPlace.connect(addr3).bid(1, {value:toWei(7)})).
-            to.emit(marketPlace, "Bidded")
-            .withArgs(
-                1,
-                1,
-                toWei(7),
-                addr1.address,
-                addr3.address,
-                1000
-            );
-            const feeAccountAfterEthBal3= await deployer.getBalance();
-            expect(feeAccountAfterEthBal3).to.equal(feeAccountAfterEthBal.add(toWei(7)));
+            const tx3 = await marketPlace.connect(addr3).bid(1, {value:toWei(7)});
+            receipt= await tx3.wait();
+            const gasFee3= receipt.gasUsed * receipt.effectiveGasPrice
+            console.log("gasFee",gasFee3);
             const addr1InitialETHBal = await addr1.getBalance();
             // finish auction
-            await expect(marketPlace.executeSale(1))
-            .to.emit(marketPlace, "auctionDeal")
-            .withArgs(
-                1,
-                nft.address,
-                1,
-                toWei(7),
-                addr1.address,
-                addr3.address
-            )
-            // const addr1AfterETHBal = await addr1.getBalance();
-            // const myFee= toWei(7).mul(feePercent).div(100+feePercent);
-            // expect(addr1AfterETHBal).to.equal(addr1InitialETHBal.add(myFee));
+            // await expect(marketPlace.connect(addr1).executeSale(1))
+            // .to.emit(marketPlace, "auctionDeal")
+            // .withArgs(
+            //     1,
+            //     nft.address,
+            //     1,
+            //     toWei(7),
+            //     addr1.address,
+            //     addr3.address
+            // )
+            const tx_fin = await marketPlace.connect(addr1).executeSale(1);
+            receipt= await tx_fin.wait();
+            const gasFee4= receipt.gasUsed * receipt.effectiveGasPrice;
+            console.log("gasFee",gasFee4);
+            const addr1AfterETHBal = await addr1.getBalance();
+            const myFee= toWei(7).mul(100 - feePercent).div(100);
+            const feeAccountAfterEthBal= await deployer.getBalance();
+            // deployer should receive percentage fee 
+            expect(feeAccountAfterEthBal).to.equal(feeAccountInitialEthBal.add(toWei(7)).sub(myFee));
+            // seller should receive the fee after percentage sub the gas fee
+            expect(addr1AfterETHBal).to.equal(addr1InitialETHBal.add(myFee).sub(gasFee4))
+            // addr2 should remain same - gasfee
+            const addr2AfterEthBal = await addr2.getBalance();
+            expect(addr2AfterEthBal).to.equal(addr2InitialEthBal.sub(gasFee));
         })
     });
 })
