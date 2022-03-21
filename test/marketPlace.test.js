@@ -268,17 +268,7 @@ describe("NFTMarketplace",function(){
             const gasFee3= receipt.gasUsed * receipt.effectiveGasPrice
             console.log("gasFee",gasFee3);
             const addr1InitialETHBal = await addr1.getBalance();
-            // finish auction
-            // await expect(marketPlace.connect(addr1).executeSale(1))
-            // .to.emit(marketPlace, "auctionDeal")
-            // .withArgs(
-            //     1,
-            //     nft.address,
-            //     1,
-            //     toWei(7),
-            //     addr1.address,
-            //     addr3.address
-            // )
+        
             const tx_fin = await marketPlace.connect(addr1).executeSale(1);
             receipt= await tx_fin.wait();
             const gasFee4= receipt.gasUsed * receipt.effectiveGasPrice;
@@ -293,6 +283,70 @@ describe("NFTMarketplace",function(){
             // addr2 should remain same - gasfee
             const addr2AfterEthBal = await addr2.getBalance();
             expect(addr2AfterEthBal).to.equal(addr2InitialEthBal.sub(gasFee));
+            // The buyer should now own the nft
+            expect(await nft.ownerOf(1)).to.equal(addr3.address);
+            //Item should be marked as sold
+            expect((await marketPlace.items(1)).sold).to.equal(true);
+        });
+        it("Should fail for invalid input, inactive auction or sold item",async function(){
+            //fail for basePrice=0
+            await expect(marketPlace.connect(addr1).auctionItem(1,0,300))
+            .to.be.revertedWith("Base price should be greater than 0");
+            //fail for duration=0
+            await expect(marketPlace.connect(addr1).auctionItem(1,toWei(3),0))
+            .to.be.revertedWith("Invalid duration value");
+            //fail for non-seller call auction
+            await expect(marketPlace.connect(addr2).auctionItem(1,toWei(3),300))
+            .to.be.revertedWith("Only can be called by seller");
+            // addr1, the seller, auction item should be success
+            await marketPlace.connect(addr1).auctionItem(1, toWei(5), 1000);
+            //fail for already auctioned item
+            await expect(marketPlace.connect(addr1).auctionItem(1,toWei(3),300))
+            .to.be.revertedWith("The item is in auction!");
+            // seller cannot bid for his/her auction item
+            await expect(marketPlace.connect(addr1).bid(1, {value:toWei(6)}))
+            .to.be.revertedWith("Seller cannot call this function");
+            // bidPrice cannot less than basePrice+market fee;
+            // addr2 bid 5 ETH
+            await expect(marketPlace.connect(addr2).bid(1, {value:toWei(5)}))
+            .to.be.revertedWith("bid price is less than base price+market fee");
+            //deployer bid 6 ETH,addr2 bid 7 ETH
+            await marketPlace.connect(deployer).bid(1, {value:toWei(6)});
+            await marketPlace.connect(addr2).bid(1, {value:toWei(7)});
+            //bidPrice required to be higher than highest bid
+            //addr3 bid 6 ETH. should be reverted.
+            await expect(marketPlace.connect(addr3).bid(1, {value:toWei(6)}))
+            .to.be.revertedWith("Current max bid is higher than your bid");
+            // fail for non-seller executeSale
+            await expect(marketPlace.connect(addr2).executeSale(1))
+            .to.be.revertedWith("Not seller");
+            // fail for non-seller cancel auction
+            await expect(marketPlace.connect(addr2).cancelAuction(1))
+            .to.be.revertedWith("Not seller");
+            //get auction details
+            const aucDetail= await marketPlace.connect(addr2).getAuctionDetails(1);
+            await expect(aucDetail.maxBid).to.equal(toWei(7));
+            await expect(aucDetail.maxBidUser).to.equal(addr2.address);
+            // finish auction
+            await expect(marketPlace.connect(addr1).executeSale(1))
+            .to.emit(marketPlace, "auctionDeal")
+            .withArgs(
+                1,
+                nft.address,
+                1,
+                toWei(7),
+                addr1.address,
+                addr2.address
+            );
+            // fail for cancel an inactive auction.
+            await expect(marketPlace.connect(addr1).cancelAuction(1))
+            .to.be.revertedWith("Auction not active");
+            //fail for bid an inactive auction.
+            await expect(marketPlace.connect(addr4).bid(1, {value:toWei(8)}))
+            .to.be.revertedWith("Auction not active");
+            //fail for auction a sold item.
+            await expect(marketPlace.connect(addr1).auctionItem(1,toWei(3),300))
+            .to.be.revertedWith("The item is sold!");
         })
     });
 })

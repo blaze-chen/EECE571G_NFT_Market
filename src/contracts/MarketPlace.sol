@@ -293,7 +293,7 @@ contract MarketPlace is ReentrancyGuard{
     function bid(uint _itemId) external payable onlyNotSeller(_itemId) itemExist(_itemId){
         auctionDetails storage auction = itemToAuction[_itemId];
         require(msg.value >= auction.basePrice*(100+ feePercent)/100, "bid price is less than base price+market fee");
-        require(auction.isActive,"auction not active");
+        require(auction.isActive,"Auction not active");
         //require(auction.duration> block.timestamp,"Deadline already passed");
         //get back the previous bid
         if (bids[_itemId][msg.sender]>0){
@@ -322,7 +322,7 @@ contract MarketPlace is ReentrancyGuard{
         require(msg.sender==auction.seller,"Not seller");
         require(auction.isActive,"Auction not active");
         auction.isActive = false;
-        Item memory aItem = items[_itemId];
+        Item storage aItem = items[_itemId];
         if (auction.bidAmounts.length==0){
             aItem.nft.transferFrom(address(this), auction.seller, aItem.tokenId);
         }else{
@@ -358,10 +358,10 @@ contract MarketPlace is ReentrancyGuard{
 
     // cancel auction by seller. refund to all bidders. refund the nft to seller
     function cancelAuction(uint _itemId) external itemExist(_itemId){
-        Item memory aItem = items[_itemId];
+        Item storage aItem = items[_itemId];
         auctionDetails storage auction =itemToAuction[_itemId];
         require(auction.seller == msg.sender,"Not seller");
-        require(auction.isActive,"auction not active");
+        require(auction.isActive,"Auction not active");
         auction.isActive=false;
         aItem.inAuction=false;
         // pay back to bidders
