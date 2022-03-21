@@ -55,6 +55,13 @@ contract MarketPlace is ReentrancyGuard{
         address indexed seller,
         address indexed buyer
     );
+    event sellCancelled(
+        uint itemId,
+        address indexed nft,
+        uint tokenId,
+        address indexed seller,
+        address indexed tokenOwner
+    );
     event Rewarded(
         uint itemId,
         address indexed nft,
@@ -128,7 +135,7 @@ contract MarketPlace is ReentrancyGuard{
         feeAccount =payable(msg.sender);
         feePercent = _feePercent;
     }
-    //make Item for sell
+    //developer make Item for sell
     function makeItem(IERC721 _nft, uint _tokenId, uint _price) public nonReentrant{
         require(_price>0, "Price must be greater than zero");
         itemCount++;
@@ -153,10 +160,14 @@ contract MarketPlace is ReentrancyGuard{
             msg.sender
         );
     }
-    
     // sell item after buying it (means seller is not the original developer)
-    function sellItem(uint _itemId, uint _price) public nonReentrant onlySeller(_itemId) onlyNotAuction(_itemId) itemExist(_itemId){
+    // onlyNotInSelling
+    function sellItem(uint _itemId, uint _price) public nonReentrant 
+    onlySeller(_itemId) 
+    itemExist(_itemId){
         Item storage item = items[_itemId];
+        require(item.sold,"Should be a re-sell item.");
+        item.nft.safeTransferFrom(msg.sender,address(this),item.tokenId);
         item.sold = false;
         item.price = _price;
         // emit Offered event
@@ -183,8 +194,6 @@ contract MarketPlace is ReentrancyGuard{
         item.sold=true;
         //transfer nft to buyer
         item.nft.transferFrom(address(this), msg.sender, item.tokenId);
-        //change the seller to current buyer
-        item.seller = payable(msg.sender);
         // emit Bought event
         emit Bought(
             _itemId,
@@ -194,10 +203,31 @@ contract MarketPlace is ReentrancyGuard{
             item.seller,
             msg.sender
         );
+        //change the seller to current buyer
+        item.seller = payable(msg.sender);
     }
     function getTotalPrice(uint _itemId) view public returns(uint){
         
         return(items[_itemId].price * (100+ feePercent)/100);
+    }
+    function cancelSell(uint _itemId) external onlySeller(_itemId){
+        // transfer the nft to seller
+        Item storage aItem= items[_itemId];
+        aItem.nft.transferFrom(
+            address(this),
+            aItem.seller,
+            aItem.tokenId);
+        aItem.sold=true;
+        address tokenOwner=aItem.nft.ownerOf(aItem.tokenId);
+
+        // emit sellCancelled event
+        emit sellCancelled(
+            _itemId,
+            address(aItem.nft),
+            aItem.tokenId,
+            aItem.seller,
+            tokenOwner
+        );
     }
     
     /* Reward function
@@ -208,7 +238,7 @@ contract MarketPlace is ReentrancyGuard{
         //require(!item.sold,"item already sold");
         require(msg.value>_rewardPrice ,"reward should greater than 0.0001ETH");
         item.totalReward += _rewardPrice;
-        //give reward to seller
+        //give reward to developer
         item.developer.transfer(_rewardPrice);
         //emit rewarded event
         emit Rewarded(
@@ -247,8 +277,7 @@ contract MarketPlace is ReentrancyGuard{
             users: new address[](0)
         });
         itemToAuction[_itemId]=_auction;
-        // transfer nft to contract
-        item.nft.transferFrom(msg.sender, address(this), item.tokenId);
+
         emit auctionCreated(
             item.itemId,
             address(item.nft),
@@ -259,53 +288,31 @@ contract MarketPlace is ReentrancyGuard{
         );
     }
 
-    // // seller create an auction directly from token
-    // function createAuction(IERC721 _nft,uint _tokenId, uint128 _basePrice,uint256 _duration) external nonReentrant{   
-    //     itemCount++;
-    //     _nft.transferFrom(msg.sender, address(this), _tokenId);
-    //     items[itemCount] = Item(
-    //         itemCount,
-    //         _nft,
-    //         _tokenId,
-    //         _basePrice,
-    //         payable(msg.sender),
-    //         false,
-    //         0,
-    //         true
-    //     );
-    //     auctionItem(itemCount,_basePrice,_duration);
-    // }
-
     //user bid for an item,the max bid is compared and set if current bid highest
     //itemExist onlyNotSeller
-    function bid(uint _itemId, uint _bidPrice) external payable onlyNotSeller(_itemId) itemExist(_itemId){
+    function bid(uint _itemId) external payable onlyNotSeller(_itemId) itemExist(_itemId){
         auctionDetails storage auction = itemToAuction[_itemId];
         require(msg.value >= auction.basePrice*(100+ feePercent)/100, "bid price is less than base price+market fee");
         require(auction.isActive,"auction not active");
-        require(auction.duration> block.timestamp,"Deadline already passed");
-        require(msg.value >= _bidPrice, "your balance should be greater than your bid Price");
-        // Not suggest to use call back function!
-        // //get back the previous bid
-        // if (bids[_itemId][msg.sender]>0){
-        //     Not suggest to use call back function!
-        //     (bool success, )= msg.sender.call{value: bids[_itemId][msg.sender]*(100+ feePercent)/100}("");
-        //     require(success);
-
+        //require(auction.duration> block.timestamp,"Deadline already passed");
+        //get back the previous bid
+        if (bids[_itemId][msg.sender]>0){
+            payable(msg.sender).transfer(bids[_itemId][msg.sender]);
+        }
         // }
+        bids[_itemId][msg.sender]=msg.value;
         // If there is no current bid, then this bid is the maximum
         if (auction.bidAmounts.length==0){
-            auction.maxBid= _bidPrice;
+            auction.maxBid= msg.value;
             auction.maxBidUser=payable(msg.sender);
         } else {
             // Compare it with highest bid, required to be higher than that
-            require(auction.maxBid < _bidPrice ,"Current max bid is higher than your bid");
-            auction.maxBid = _bidPrice;
+            require(auction.maxBid < msg.value,"Current max bid is higher than your bid");
+            auction.maxBid = msg.value;
             auction.maxBidUser= payable(msg.sender);
         }
-        bids[_itemId][msg.sender]=_bidPrice;
-        feeAccount.transfer(_bidPrice);
         auction.users.push(payable(msg.sender));
-        auction.bidAmounts.push(_bidPrice);
+        auction.bidAmounts.push(msg.value);
     }
 
     //when auction duration is over. The highest bid user get the nft and other bidders get Eth back
@@ -321,7 +328,9 @@ contract MarketPlace is ReentrancyGuard{
         }else{
             uint fee = auction.maxBid*feePercent/(100+feePercent);
             // Contract pay seller the max bid
-            auction.seller.transfer(fee);
+            auction.seller.transfer(auction.maxBid-fee);
+            // Contract pay fee to feeAccount
+            feeAccount.transfer(fee);
             // Contract refund to other bidders
             for (uint256 i=0; i<auction.users.length;i++){
                 if(auction.users[i]!=auction.maxBidUser){
