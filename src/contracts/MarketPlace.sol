@@ -167,7 +167,7 @@ contract MarketPlace is ReentrancyGuard{
     itemExist(_itemId){
         Item storage item = items[_itemId];
         require(item.sold,"Should be a re-sell item.");
-        item.nft.safeTransferFrom(msg.sender,address(this),item.tokenId);
+        item.nft.transferFrom(msg.sender,address(this),item.tokenId);
         item.sold = false;
         item.price = _price;
         // emit Offered event
@@ -326,7 +326,8 @@ contract MarketPlace is ReentrancyGuard{
         if (auction.bidAmounts.length==0){
             aItem.nft.transferFrom(address(this), auction.seller, aItem.tokenId);
         }else{
-            uint fee = auction.maxBid*feePercent/(100+feePercent);
+            // change the calculation function
+            uint fee = auction.maxBid*feePercent/(100);
             // Contract pay seller the max bid
             auction.seller.transfer(auction.maxBid-fee);
             // Contract pay fee to feeAccount
