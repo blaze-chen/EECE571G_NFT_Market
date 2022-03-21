@@ -10,7 +10,7 @@ contract MarketPlace is ReentrancyGuard{
     // the fee percentage on sales
     uint public immutable feePercent;
     uint public itemCount;
-    uint256 private _rewardPrice = 1*10**14; // reward 0.0001 ETH
+    uint256 private _rewardPrice = 1*10**14 wei; // reward 0.0001 ETH
     struct Item{
         uint itemId;
         IERC721 nft;
@@ -79,6 +79,13 @@ contract MarketPlace is ReentrancyGuard{
         uint128 basePrice,
         address indexed seller,
         uint256 duration
+    );
+    event Bidded(
+        uint itemId,
+        uint toeknId,
+        uint256 _bidPrice,
+        address indexed seller,
+        address indexed bidder
     );
     event auctionDeal(
         uint itemId,
@@ -313,6 +320,12 @@ contract MarketPlace is ReentrancyGuard{
         }
         auction.users.push(payable(msg.sender));
         auction.bidAmounts.push(msg.value);
+
+        // emit Bidded(
+        //     _itemId,
+        //     msg.value,
+        // );
+
     }
 
     //when auction duration is over. The highest bid user get the nft and other bidders get Eth back
@@ -322,11 +335,11 @@ contract MarketPlace is ReentrancyGuard{
         require(msg.sender==auction.seller,"Not seller");
         require(auction.isActive,"Auction not active");
         auction.isActive = false;
-        Item memory aItem = items[_itemId];
+        Item storage aItem = items[_itemId];
         if (auction.bidAmounts.length==0){
             aItem.nft.transferFrom(address(this), auction.seller, aItem.tokenId);
         }else{
-            uint fee = auction.maxBid*feePercent/(100+feePercent);
+            uint256 fee = auction.maxBid*feePercent/(100+feePercent);
             // Contract pay seller the max bid
             auction.seller.transfer(auction.maxBid-fee);
             // Contract pay fee to feeAccount
@@ -357,7 +370,7 @@ contract MarketPlace is ReentrancyGuard{
 
     // cancel auction by seller. refund to all bidders. refund the nft to seller
     function cancelAuction(uint _itemId) external itemExist(_itemId){
-        Item memory aItem = items[_itemId];
+        Item storage aItem = items[_itemId];
         auctionDetails storage auction =itemToAuction[_itemId];
         require(auction.seller == msg.sender,"Not seller");
         require(auction.isActive,"auction not active");
