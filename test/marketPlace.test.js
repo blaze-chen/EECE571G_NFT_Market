@@ -274,7 +274,7 @@ describe("NFTMarketplace",function(){
             expect(feeAccountAfterEthBal3).to.equal(feeAccountAfterEthBal.add(toWei(7)));
             const addr1InitialETHBal = await addr1.getBalance();
             // finish auction
-            await expect(marketPlace.executeSale(1))
+            await expect(marketPlace.connect(deployer).executeSale(1))
             .to.emit(marketPlace, "auctionDeal")
             .withArgs(
                 1,

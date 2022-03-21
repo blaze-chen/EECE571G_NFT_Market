@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 contract MarketPlace is ReentrancyGuard{
     // the account that receives fees
@@ -71,6 +72,14 @@ contract MarketPlace is ReentrancyGuard{
         uint tokenId,
         uint128 basePrice,
         address indexed seller,
+        uint256 duration
+    );
+    event Bidded(
+        uint itemId,
+        uint toeknId,
+        uint256 _bidPrice,
+        address indexed seller,
+        address indexed bidder,
         uint256 duration
     );
     event auctionDeal(
@@ -159,6 +168,7 @@ contract MarketPlace is ReentrancyGuard{
         Item storage item = items[_itemId];
         item.sold = false;
         item.price = _price;
+        item.nft.transferFrom(msg.sender, address(this), item.tokenId);
         // emit Offered event
         emit SellAgain(
             item.itemId,
@@ -175,6 +185,8 @@ contract MarketPlace is ReentrancyGuard{
         require(_itemId>0 && _itemId <= itemCount,"item doesn't exist");
         require(msg.value>=_totalPrice,"not enough ether to cover item price and market fee");
         require(!item.sold,"item already sold");
+        console.log("the address of buyer is %s ", msg.sender);
+        console.log("the address of the seller is %s", item.seller);
         //pay seller
         item.seller.transfer(item.price);
         //pay feeAccount
@@ -183,8 +195,9 @@ contract MarketPlace is ReentrancyGuard{
         item.sold=true;
         //transfer nft to buyer
         item.nft.transferFrom(address(this), msg.sender, item.tokenId);
-        //change the seller to current buyer
-        item.seller = payable(msg.sender);
+        console.log("the address of the contract is: %s",address(this));
+        console.log("the current owner is: %s", item.nft.ownerOf(item.tokenId));
+        console.log("the current seller is %s ", msg.sender);
         // emit Bought event
         emit Bought(
             _itemId,
@@ -194,6 +207,8 @@ contract MarketPlace is ReentrancyGuard{
             item.seller,
             msg.sender
         );
+        //change the seller to current buyer
+        item.seller = payable(msg.sender);
     }
     function getTotalPrice(uint _itemId) view public returns(uint){
         
@@ -247,8 +262,6 @@ contract MarketPlace is ReentrancyGuard{
             users: new address[](0)
         });
         itemToAuction[_itemId]=_auction;
-        // transfer nft to contract
-        item.nft.transferFrom(msg.sender, address(this), item.tokenId);
         emit auctionCreated(
             item.itemId,
             address(item.nft),
@@ -278,12 +291,17 @@ contract MarketPlace is ReentrancyGuard{
 
     //user bid for an item,the max bid is compared and set if current bid highest
     //itemExist onlyNotSeller
-    function bid(uint _itemId, uint _bidPrice) external payable onlyNotSeller(_itemId) itemExist(_itemId){
+    function bid(uint _itemId) external payable onlyNotSeller(_itemId) itemExist(_itemId){
         auctionDetails storage auction = itemToAuction[_itemId];
+        uint _bidPrice = msg.value;
         require(msg.value >= auction.basePrice*(100+ feePercent)/100, "bid price is less than base price+market fee");
         require(auction.isActive,"auction not active");
-        require(auction.duration> block.timestamp,"Deadline already passed");
-        require(msg.value >= _bidPrice, "your balance should be greater than your bid Price");
+        console.log("Bid");
+        console.log("address of the contract is: %s", address(this));
+        console.log("address of the bidder is: %s",msg.sender);
+        // The verification of the timestamp will be controled by the frontend instead
+        // require(auction.duration> block.timestamp,"Deadline already passed");
+        //require(msg.value >= _bidPrice, "your balance should be greater than your bid Price");
         // Not suggest to use call back function!
         // //get back the previous bid
         // if (bids[_itemId][msg.sender]>0){
@@ -306,21 +324,34 @@ contract MarketPlace is ReentrancyGuard{
         feeAccount.transfer(_bidPrice);
         auction.users.push(payable(msg.sender));
         auction.bidAmounts.push(_bidPrice);
+        emit Bidded(
+            _itemId,
+            _itemId,
+            _bidPrice,
+            auction.seller,
+            msg.sender,
+            auction.duration
+        );
+
     }
 
     //when auction duration is over. The highest bid user get the nft and other bidders get Eth back
-    function executeSale(uint _itemId) external{
+    function executeSale(uint _itemId) external payable{
         auctionDetails storage auction = itemToAuction[_itemId];
-        require(block.timestamp >= auction.duration,"auction hasn't ended.");
-        require(msg.sender==auction.seller,"Not seller");
+        //require(block.timestamp >= auction.duration,"auction hasn't ended.");
+        //require(msg.sender==auction.seller,"Not seller");
         require(auction.isActive,"Auction not active");
+        console.log("Finish Bid");
+        console.log("address of the contract is: %s", address(this));
         auction.isActive = false;
         Item memory aItem = items[_itemId];
         if (auction.bidAmounts.length==0){
             aItem.nft.transferFrom(address(this), auction.seller, aItem.tokenId);
         }else{
-            uint fee = auction.maxBid*feePercent/(100+feePercent);
+            uint fee = auction.maxBid;
             // Contract pay seller the max bid
+            console.log("address of the buyer is: %s", auction.maxBidUser);
+            console.log("address of the seller is: %s",auction.seller);
             auction.seller.transfer(fee);
             // Contract refund to other bidders
             for (uint256 i=0; i<auction.users.length;i++){
