@@ -230,7 +230,6 @@ describe("NFTMarketplace",function(){
             await marketPlace.connect(addr1).makeItem(nft.address,1,toWei(price));
         })
         it("Should create auction correctly and finish bidding successfuly",async function(){
-            const addr2InitialEthBal= await addr2.getBalance();
             const feeAccountInitialEthBal= await deployer.getBalance();
             //addr1 create auction
             await expect(marketPlace.connect(addr1).auctionItem(1, toWei(5), 1000)).
@@ -254,9 +253,6 @@ describe("NFTMarketplace",function(){
                 addr2.address,
                 1000
             );
-            const addr2AfterEthBal= await addr2.getBalance();
-            const feeAccountAfterEthBal= await deployer.getBalance();
-            expect(feeAccountAfterEthBal).to.equal(feeAccountInitialEthBal.add(toWei(6)));
             // expect(addr2AfterEthBal).to.equal(addr2InitialEthBal.sub(toWei(6)));
 
             // addr3 bid 7 ETH
@@ -270,11 +266,9 @@ describe("NFTMarketplace",function(){
                 addr3.address,
                 1000
             );
-            const feeAccountAfterEthBal3= await deployer.getBalance();
-            expect(feeAccountAfterEthBal3).to.equal(feeAccountAfterEthBal.add(toWei(7)));
             const addr1InitialETHBal = await addr1.getBalance();
             // finish auction
-            await expect(marketPlace.connect(deployer).executeSale(1))
+            await expect(marketPlace.connect(addr1).executeSale(1))
             .to.emit(marketPlace, "auctionDeal")
             .withArgs(
                 1,
@@ -284,9 +278,10 @@ describe("NFTMarketplace",function(){
                 addr1.address,
                 addr3.address
             )
-            // const addr1AfterETHBal = await addr1.getBalance();
-            // const myFee= toWei(7).mul(feePercent).div(100+feePercent);
-            // expect(addr1AfterETHBal).to.equal(addr1InitialETHBal.add(myFee));
+            const addr1AfterETHBal = await addr1.getBalance();
+            // const myFee= toWei(7).mul(100).div(100+feePercent);
+            const myFee = toWei(7);
+            expect(addr1AfterETHBal).to.equal(addr1InitialETHBal.add(myFee));
         })
     });
 })

@@ -321,7 +321,6 @@ contract MarketPlace is ReentrancyGuard{
             auction.maxBidUser= payable(msg.sender);
         }
         bids[_itemId][msg.sender]=_bidPrice;
-        feeAccount.transfer(_bidPrice);
         auction.users.push(payable(msg.sender));
         auction.bidAmounts.push(_bidPrice);
         emit Bidded(
@@ -339,7 +338,7 @@ contract MarketPlace is ReentrancyGuard{
     function executeSale(uint _itemId) external payable{
         auctionDetails storage auction = itemToAuction[_itemId];
         //require(block.timestamp >= auction.duration,"auction hasn't ended.");
-        //require(msg.sender==auction.seller,"Not seller");
+        require(msg.sender==auction.seller,"Not seller");
         require(auction.isActive,"Auction not active");
         console.log("Finish Bid");
         console.log("address of the contract is: %s", address(this));
@@ -348,11 +347,13 @@ contract MarketPlace is ReentrancyGuard{
         if (auction.bidAmounts.length==0){
             aItem.nft.transferFrom(address(this), auction.seller, aItem.tokenId);
         }else{
+            // uint fee = auction.maxBid * 100 / (100 + feePercent);
             uint fee = auction.maxBid;
             // Contract pay seller the max bid
             console.log("address of the buyer is: %s", auction.maxBidUser);
             console.log("address of the seller is: %s",auction.seller);
             auction.seller.transfer(fee);
+            // feeAccount.transfer(auction.maxBid - fee);
             // Contract refund to other bidders
             for (uint256 i=0; i<auction.users.length;i++){
                 if(auction.users[i]!=auction.maxBidUser){
