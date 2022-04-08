@@ -176,6 +176,23 @@ describe("NFTMarketplace",function(){
         });
 
     });
+    describe("Present the current Address correctly",function(){
+        let price=2;
+        beforeEach(async function(){
+            //addr1 mints an nft
+            await nft.connect(addr1).mint(URI);
+            //addr1 approves marketPlace to spend nft
+            await nft.connect(addr1).setApprovalForAll(marketPlace.address,true);
+            //addr1 makes their nft a marketPlace item.
+            await marketPlace.connect(addr1).makeItem(nft.address,1,toWei(price))
+        })
+        it("should present correct itemId after mintting",async function(){
+            myAddress = await marketPlace.connect(addr1).currentAddress();
+            expect(myAddress).equals(addr1.address);
+        })
+    });
+
+
     describe("Other user reward an item",function(){
         let price=2;
         beforeEach(async function(){

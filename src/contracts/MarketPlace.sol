@@ -10,7 +10,7 @@ contract MarketPlace is ReentrancyGuard{
     // the fee percentage on sales
     uint public immutable feePercent;
     uint public itemCount;
-    uint256 private _rewardPrice = 1*10**14; // reward 0.0001 ETH
+    uint private _rewardPrice = 1*10**16; // reward 0.0001 ETH
     struct Item{
         uint itemId;
         IERC721 nft;
@@ -32,7 +32,6 @@ contract MarketPlace is ReentrancyGuard{
         uint256[] bidAmounts;
         address [] users; 
     }
-
     event Offered(
         uint itemId,
         address indexed nft,
@@ -160,6 +159,13 @@ contract MarketPlace is ReentrancyGuard{
             msg.sender
         );
     }
+
+
+    function currentAddress() public view returns(address ){
+        return msg.sender;
+    }
+
+
     // sell item after buying it (means seller is not the original developer)
     // onlyNotInSelling
     function sellItem(uint _itemId, uint _price) public nonReentrant 
@@ -232,7 +238,7 @@ contract MarketPlace is ReentrancyGuard{
     
     /* Reward function
     other users give a like to this photo as well as give tiny reward */
-    function reward(uint _itemId) external payable{
+    function reward(uint _itemId) external payable nonReentrant{
         require(_itemId>0 && _itemId <= itemCount,"item doesn't exist");
         Item storage item = items[_itemId];
         //require(!item.sold,"item already sold");

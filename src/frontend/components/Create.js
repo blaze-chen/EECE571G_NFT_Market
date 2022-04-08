@@ -14,6 +14,7 @@ const Create = ({ marketplace, nft }) => {
     const file = event.target.files[0]
     if (typeof file !== 'undefined') {
       try {
+        console.log("adding pictures")
         const result = await client.add(file)
         console.log(result)
         setImage(`https://ipfs.infura.io/ipfs/${result.path}`)
@@ -34,12 +35,18 @@ const Create = ({ marketplace, nft }) => {
   const mintThenList = async (result) => {
     const uri = `https://ipfs.infura.io/ipfs/${result.path}`
     // mint nft 
+    console.log("start minting")
     await(await nft.mint(uri)).wait()
     // get tokenId of new nft 
+    console.log("mint success!")
     const id = await nft.tokenCount()
+    console.log("id is:")
+    console.log(id)
     // approve marketplace to spend nft
+    console.log("approve to make item")
     await(await nft.setApprovalForAll(marketplace.address, true)).wait()
     // add nft to marketplace
+    console.log("make item on marketplace")
     const listingPrice = ethers.utils.parseEther(price.toString())
     await(await marketplace.makeItem(nft.address, id, listingPrice)).wait()
   }

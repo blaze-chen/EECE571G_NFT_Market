@@ -11,6 +11,11 @@ import Create from './Create.js'
 import MyProfile from './MyProfile.js'
 import Buy from './Buy.js'
 
+import MarketplaceAbi from '../contractsData/MarketPlace.json'
+import MarketplaceAddress from '../contractsData/Marketplace-address.json'
+import NFTAbi from '../contractsData/NFT.json'
+import NFTAddress from '../contractsData/NFT-address.json'
+
 import { ethers } from "ethers"
 import { useState } from 'react'
 import { Spinner } from 'react-bootstrap'
@@ -45,16 +50,16 @@ function App() {
     })
 
     // load the contract
-    //loadContracts(signer)
+    loadContracts(signer)
   }
 
   const loadContracts = async (signer) => {
     // Get deployed copies of contracts
-    //const marketplace = new ethers.Contract(MarketplaceAddress.address, MarketplaceAbi.abi, signer)
-    //setMarketplace(marketplace)
-    //const nft = new ethers.Contract(NFTAddress.address, NFTAbi.abi, signer)
-    //setNFT(nft)
-    
+    const marketplace = new ethers.Contract(MarketplaceAddress.address, MarketplaceAbi.abi, signer)
+    setMarketplace(marketplace)
+    const nft = new ethers.Contract(NFTAddress.address, NFTAbi.abi, signer)
+    setNFT(nft)
+    setLoading(false)
   }
 
   const stopLoading = async (signer) => {
@@ -65,7 +70,7 @@ function App() {
     <BrowserRouter>
       <div className="App">
         <>
-          <Navigation stopLoading={stopLoading} account={account} />
+          <Navigation web3Handler={web3Handler} account={account} />
         </>
         <div>
           {loading ? (

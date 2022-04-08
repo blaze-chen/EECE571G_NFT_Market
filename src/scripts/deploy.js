@@ -14,8 +14,8 @@ async function main() {
     const marketplace = await Marketplace.deploy(1);
     const nft = await NFT.deploy();
 
-    await nft.deployed();
-    await marketplace.deployed();
+    // await nft.deployed();
+    // await marketplace.deployed();
     // Save copies of each contracts abi and address to the frontend.
     saveFrontendFiles(marketplace , "Marketplace");
     saveFrontendFiles(nft , "NFT");

@@ -4,7 +4,7 @@ import {
 import { Navbar, Nav, Button, Container } from 'react-bootstrap'
 import market from './logo.png'
 
-const Navigation = ({ stopLoading, account }) => {
+const Navigation = ({ web3Handler, account }) => {
     return (
         <Navbar bg="dark" variant="dark">
             <Container>
@@ -34,7 +34,7 @@ const Navigation = ({ stopLoading, account }) => {
 
                             </Nav.Link>
                         ) : (
-                            <Button onClick={stopLoading} variant="outline-light">Connect Wallet</Button>
+                            <Button onClick={web3Handler} variant="outline-light">Connect Wallet</Button>
                         )}
                     </Nav>
                 </Navbar.Collapse>
