@@ -60,11 +60,11 @@ const Explore = ({ marketplace, nft }) => {
     <div className="flex justify-center">
       {items.length > 0 ?
         <div className="px-5 container">
-          <Row xs={1} md={2} lg={4} className="g-4 py-5">
+          <Row xs={1} md={2} lg={4} className="g-4 py-5" >
             {items.map((item, idx) => (
               <Col key={idx} className="overflow-hidden">
-                <Card>
-                  <Card.Img variant="top" src={item.image} />
+                <Card >
+                  <Card.Img variant="top" src={item.image} style={{height: '18rem'}}/>
                   <Card.Body color="secondary">
                     <Card.Title>{item.name}</Card.Title>
                     <Card.Text>
@@ -73,10 +73,10 @@ const Explore = ({ marketplace, nft }) => {
                   </Card.Body>
                   <Card.Footer>
                     <div className='d-grid'>
-                      <Button disabled={item.inAuction} onClick={() => buyMarketItem(item)} variant="primary" size="lg">
+                      <Button disabled={item.inAuction} onClick={() => buyMarketItem(item)} variant="dark" size="sm" style={{ margin: '5px',background: '#ffc800',borderColor: '#ffc800' }}>
                         Buy for {ethers.utils.formatEther(item.totalPrice)} ETH
                       </Button>
-                      <Button onClick={() => rewardItem(item)} variant="primary" size="lg">
+                      <Button onClick={() => rewardItem(item)} variant="dark" size="sm" style={{ margin: '5px' }}>
                         Reward the developer
                       </Button>
                     </div>

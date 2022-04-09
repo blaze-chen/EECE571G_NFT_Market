@@ -87,11 +87,11 @@ const Auction = ({ marketplace, nft }) => {
                   </ListGroup> */}
                   <Card.Footer>
                     <div className='d-grid'>
-                      <Button onClick={() => rewardItem(item)} variant="primary" size="lg">
+                      <Button onClick={() => rewardItem(item)} variant="dark" size="sm" style={{ marginTop: '5px', marginBottom: '15px', background: '#ffc800',borderColor: '#ffc800' }}>
                         Reward the developer
                       </Button>
-                      <Form.Control onChange={(e) => setBidPrice(e.target.value)} size="lg" required type="number" placeholder="Bid Price in ETH" />
-                      <Button disabled={item.inAuction} onClick={() => bid(item)} variant="primary" size="lg">
+                      <Form.Control onChange={(e) => setBidPrice(e.target.value)} size="sm" required type="number" placeholder="Enter Bid Price in ETH" />
+                      <Button disabled={item.inAuction} onClick={() => bid(item)} variant="dark" size="sm" style={{ marginTop: '5px', marginBottom: '5px'}}>
                         Bid this item
                       </Button>
                     </div>

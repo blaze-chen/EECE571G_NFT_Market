@@ -78,7 +78,7 @@ const MyProfile = ({ marketplace, nft }) => {
             {items.map((item, idx) => (
               <Col key={idx} className="overflow-hidden">
                 <Card>
-                  <Card.Img variant="top" src={item.image} />
+                  <Card.Img variant="top" src={item.image}  style={{height: '18rem'}}/>
                   <Card.Body color="secondary">
                     <Card.Title>{item.name}</Card.Title>
                     <Card.Text>
@@ -87,14 +87,14 @@ const MyProfile = ({ marketplace, nft }) => {
                   </Card.Body>
                   <Card.Footer>
                     <div className='d-grid'>
-                      <Form.Control onChange={(e) => setPrice(e.target.value)} size="lg" required type="number" placeholder="Price in ETH" />
-                      <Button disabled={!item.sold} onClick={() => sellItem(item)} variant="primary" size="lg">
+                      <Form.Control onChange={(e) => setPrice(e.target.value)} size="sm" required type="number" placeholder="Price in ETH" />
+                      <Button disabled={!item.sold} onClick={() => sellItem(item)} variant="dark" size="sm"  style={{ marginBottom: '5px', marginTop: '10px', background: '#ffc800',borderColor: '#ffc800' }}>
                         Sell This Item
                       </Button>
-                      <Button disabled={item.sold || item.inAuction} onClick={() => auctionItem(item)} variant="primary" size="lg">
+                      <Button disabled={item.sold || item.inAuction} onClick={() => auctionItem(item)} variant="dark" size="sm"  style={{ marginBottom: '5px', marginTop: '5px', background: '#ffc800',borderColor: '#ffc800' }}>
                         Put this item to Auction
                       </Button>
-                      <Button disabled={item.sold} onClick={() => executeSale(item)} variant="primary" size="lg">
+                      <Button disabled={item.sold} onClick={() => executeSale(item)} variant="dark" size="sm"  style={{ marginBottom: '5px', marginTop: '5px'}}>
                         Finalize the Auction
                       </Button>
                     </div>

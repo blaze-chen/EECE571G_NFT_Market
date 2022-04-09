@@ -6,9 +6,9 @@ import market from './logo.png'
 
 const Navigation = ({ web3Handler, account }) => {
     return (
-        <Navbar bg="dark" variant="dark">
+        <Navbar bg="dark" variant="dark" style={{fontFamily: 'Open Sans'}} >
             <Container>
-                <Navbar.Brand href="#">
+                <Navbar.Brand href="#" >
                     <img src={market} width="50" height="40" className="" alt="" />
                     &nbsp; DApp NFT Marketplace
                 </Navbar.Brand>
