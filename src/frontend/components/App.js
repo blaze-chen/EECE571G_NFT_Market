@@ -9,7 +9,6 @@ import Home from './Home.js'
 import Explore from './Explore.js'
 import Create from './Create.js'
 import MyProfile from './MyProfile.js'
-import Buy from './Buy.js'
 import Auction from "./Auction";
 
 import MarketplaceAbi from '../contractsData/MarketPlace.json'
