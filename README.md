@@ -20,7 +20,8 @@ For now we only have implemented the mint function which can add token to one ad
 ## Dependencies:
 ```
 $ npm install
-$ npm i react-bootstrap
+$ npm install bootstrap@5.1.3
+
 ```
 ## Launch Frontend
 `$ npm run start`
