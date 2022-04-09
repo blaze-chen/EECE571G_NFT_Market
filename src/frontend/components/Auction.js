@@ -1,69 +1,61 @@
 import { useState, useEffect } from 'react'
 import { ethers } from "ethers"
-import { Row, Col, Card, Button, ButtonToolbar, Form } from 'react-bootstrap'
+import { Row, Col, Card, Button, ButtonToolbar, Form, ListGroup } from 'react-bootstrap'
 
-const MyProfile = ({ marketplace, nft }) => {
+const Auction = ({ marketplace, nft }) => {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState([])
   const [price, setPrice] = useState(null)
-
-  const loadMyItems = async () => {
+  const [bidPrice, setBidPrice] = useState(0)
+  const loadAuctionItems = async () => {
     // Load all items belongs to current address
     const itemCount = await marketplace.itemCount()
     const address = await marketplace.currentAddress()
     let items = []
     for (let i = 1; i <= itemCount; i++) {
       const item = await marketplace.items(i)
-      if (item.seller == address) {
+      if (!item.sold && item.inAuction) {
         // get uri url from nft contract
         const uri = await nft.tokenURI(item.tokenId)
         // use uri to fetch the nft metadata stored on ipfs 
         const response = await fetch(uri)
         const metadata = await response.json()
         // get total price of item (item price + fee)
-        const totalPrice = await marketplace.getTotalPrice(item.itemId)
-
-        console.log("developer is:" + item.developer)
-        console.log("Is item sold: "+ item.sold)
-        console.log("The current seller is: "+item.seller)
-        const address2 = await nft.ownerOf(item.itemId)
-        console.log("the current owner is: "+ address2)
+        const auction = await marketplace.getAuctionDetails(item.itemId)
+        console.log(ethers.utils.formatEther(auction.basePrice))
         // Add item to items array
         items.push({
-          totalPrice,
           itemId: item.itemId,
           seller: item.seller,
           name: metadata.name,
           description: metadata.description,
           image: metadata.image,
           sold: item.sold,
-          inAuction: item.inAuction
+          basePrice: auction.basePrice,
+          maxBid: auction.maxBid,
+          maxBidUser: auction.maxBidUser,
+          bidAmounts: auction.bidAmounts,
+          users: auction.users
         })
       }
     }
     setLoading(false)
     setItems(items)
   }
-  const executeSale = async (item) => {
-    await (await marketplace.executeSale(item.itemId)).wait()
-    loadMyItems()
-  }
-  const sellItem = async (item) => {
-    console.log("current price is: "+price)
-    const listingPrice = ethers.utils.parseEther(price.toString())
-    await (await marketplace.sellItem(item.itemId, listingPrice)).wait()
-    loadMyItems()
+
+  const rewardItem = async (item) => {
+    const rewardPrice = 0.02
+    const reward = ethers.utils.parseEther(rewardPrice.toString())
+    await (await marketplace.reward(item.itemId, {value: reward})).wait()
   }
 
-  const auctionItem = async (item) =>{
-    const listingPrice = ethers.utils.parseEther(price.toString())
-    await (await marketplace.auctionItem(item.itemId, listingPrice, 10)).wait()
-    console.log("put this item to auction!")
-    loadMyItems()
+  const bid = async (item) => {
+    const bid = ethers.utils.parseEther(bidPrice.toString())
+    await (await marketplace.bid(item.itemId, {value: bid})).wait()
+    loadAuctionItems()
   }
-
   useEffect(() => {
-    loadMyItems()
+    loadAuctionItems()
   }, [])
   if (loading) return (
     <main style={{ padding: "1rem 0" }}>
@@ -82,20 +74,25 @@ const MyProfile = ({ marketplace, nft }) => {
                   <Card.Body color="secondary">
                     <Card.Title>{item.name}</Card.Title>
                     <Card.Text>
-                      {item.description}
+                      Seller: {item.seller}, Base Price {ethers.utils.formatEther(item.basePrice)} ETH
+                    </Card.Text>
+                    <Card.Text>
+                      Current Maximum Bid is {ethers.utils.formatEther(item.maxBid)} ETH from {item.maxBidUser}
                     </Card.Text>
                   </Card.Body>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item></ListGroup.Item>
+                    <ListGroup.Item>Dapibus ac facilisis in</ListGroup.Item>
+                    <ListGroup.Item>Vestibulum at eros</ListGroup.Item>
+                  </ListGroup>
                   <Card.Footer>
                     <div className='d-grid'>
-                      <Form.Control onChange={(e) => setPrice(e.target.value)} size="lg" required type="number" placeholder="Price in ETH" />
-                      <Button disabled={!item.sold} onClick={() => sellItem(item)} variant="primary" size="lg">
-                        Sell This Item
+                      <Button onClick={() => rewardItem(item)} variant="primary" size="lg">
+                        Reward the developer
                       </Button>
-                      <Button disabled={item.sold || item.inAuction} onClick={() => auctionItem(item)} variant="primary" size="lg">
-                        Put this item to Auction
-                      </Button>
-                      <Button disabled={item.sold} onClick={() => executeSale(item)} variant="primary" size="lg">
-                        Finalize the Auction
+                      <Form.Control onChange={(e) => setBidPrice(e.target.value)} size="lg" required type="number" placeholder="Bid Price in ETH" />
+                      <Button disabled={item.inAuction} onClick={() => bid(item)} variant="primary" size="lg">
+                        Bid this item
                       </Button>
                     </div>
                   </Card.Footer>
@@ -112,4 +109,4 @@ const MyProfile = ({ marketplace, nft }) => {
     </div>
   );
 }
-export default MyProfile
+export default Auction

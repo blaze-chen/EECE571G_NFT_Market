@@ -352,6 +352,7 @@ contract MarketPlace is ReentrancyGuard{
         }
         aItem.inAuction = false;
         aItem.sold = true;
+        aItem.seller = payable(auction.maxBidUser);
 
         emit auctionDeal(
             _itemId,
