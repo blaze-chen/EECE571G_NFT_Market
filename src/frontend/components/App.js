@@ -93,9 +93,6 @@ function App() {
               <Route path="/my-profile" element={
                 <MyProfile marketplace={marketplace} nft={nft} account={account} />
               } />
-              <Route path="/buy" element={
-                <Buy marketplace={marketplace} nft={nft} account={account} />
-              } />
               <Route path="/auction" element={
                 <Auction marketplace={marketplace} nft={nft} account={account} />
               } />

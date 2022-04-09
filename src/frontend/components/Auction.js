@@ -80,11 +80,11 @@ const Auction = ({ marketplace, nft }) => {
                       Current Maximum Bid is {ethers.utils.formatEther(item.maxBid)} ETH from {item.maxBidUser}
                     </Card.Text>
                   </Card.Body>
-                  <ListGroup variant="flush">
+                  {/* <ListGroup variant="flush">
                     <ListGroup.Item></ListGroup.Item>
                     <ListGroup.Item>Dapibus ac facilisis in</ListGroup.Item>
                     <ListGroup.Item>Vestibulum at eros</ListGroup.Item>
-                  </ListGroup>
+                  </ListGroup> */}
                   <Card.Footer>
                     <div className='d-grid'>
                       <Button onClick={() => rewardItem(item)} variant="primary" size="lg">
