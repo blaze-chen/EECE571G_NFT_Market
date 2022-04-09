@@ -9,10 +9,11 @@ const Explore = ({ marketplace, nft }) => {
     // Load all unsold items
     const itemCount = await marketplace.itemCount()
     let items = []
-    console.log(itemCount)
+    console.log("Is in Auction")
     for (let i = 1; i <= itemCount; i++) {
       const item = await marketplace.items(i)
-      if (!item.sold) {
+      console.log(item.inAuction)
+      if (!item.sold && !item.inAuction) {
         // get uri url from nft contract
         const uri = await nft.tokenURI(item.tokenId)
         // use uri to fetch the nft metadata stored on ipfs 
@@ -72,7 +73,7 @@ const Explore = ({ marketplace, nft }) => {
                   </Card.Body>
                   <Card.Footer>
                     <div className='d-grid'>
-                      <Button onClick={() => buyMarketItem(item)} variant="primary" size="lg">
+                      <Button disabled={item.inAuction} onClick={() => buyMarketItem(item)} variant="primary" size="lg">
                         Buy for {ethers.utils.formatEther(item.totalPrice)} ETH
                       </Button>
                       <Button onClick={() => rewardItem(item)} variant="primary" size="lg">
